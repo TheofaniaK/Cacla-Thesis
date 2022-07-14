@@ -8,7 +8,7 @@ from force_feedback import force
 from sim_file import simulation
 from steps_reward import take_step, take_step_test
 
-def run_episode(model, x, y, radi, coord1, coord2):
+def run_episode(model, x, y, radi, coord1, coord2, episode):
     """
     The core of training.
     For each movement (until the variable done != True) calculates value function at time T0 and T1,
@@ -18,15 +18,19 @@ def run_episode(model, x, y, radi, coord1, coord2):
     """
 
     # initialize variables and reset environment
-    trajectory = []
+    # trajectory = []
     V = []
     Vf = []
     rew = []
     d = []
     delt = []
+    batch_sz = 32
+    observations = []
+    targets = []
+    actions = []
     initial = [[x[0], y[0]]]
-    model.critic.save_weights('model.h5')
-    model.actor.save_weights('model.h6')
+    # model.critic.save_weights('model.h5')
+    # model.actor.save_weights('model.h6')
     #print('initial is:', initial, np.shape(initial))
     f1 = force(x, y, float(radi), coord1, coord2)
     pen_prev = f1[0]
@@ -45,72 +49,49 @@ def run_episode(model, x, y, radi, coord1, coord2):
     cnt = 0
     fores = []
     #diaf = []
-    while not done:
-        i += 1
+    for i in range(1000):
         # if i % 50 == 0:
         #     plt.cla()
         #     ax1.axis('equal')
         #     ax1.plot(coords1[:, 0], coords1[:, 1])
         #     ax1.plot(coords2[:, 0], coords2[:, 1])
-        if i == 200:
-            #plt.close(fig1)
-            print('       V0,                    V1,                    reward,                  diff,                  delta are:')
-            k = 1
-            for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
-                print(k,
-                      '   ', np.around(j, 4),
-                      '              ', np.around(z, 4),
-                      '              ', np.around(q, 4),
-                      '              ', np.around(x, 4),
-                      '              ', np.around(u, 4), end='\n')
-                k += 1
-            print('Counter is:', counter)
-            print('Diff is >= 1:', cnt, 'times')
-            print(fores)
-            plt.plot(rew)
-            plt.pause(0.5)
-            print('Total updates are:', update)
-            print('Total problems are:', problem)
-            # for t in diaf:
-            #     print(t, end='\n')
-            """j = 0
-            V = []
-            A = []
-            a = []
-            while j < 12:
-                print('@@@@@@@@@@@@@@', j, ' @@@@@@@@@@@@@@@@')
-                # get current value of value function for observation0
-                V0 = model.critic.predict(np.array([observation0]))
-                V.append(V0)
-                # predict default action
-                A0 = model.actor.predict(np.array([observation0]))
-                A.append(A0)
-                # sample new explored action
-                a0 = model.sample(A0[0], model.exploration_factor)
-                a.append(a0)
-                j += 1
-
-            print('V is:')
-            for j in V:
-                print(j)
-            print('------------------------------------')
-            print('A is:')
-            for j in A:
-                print(j)"""
-            break
-        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        # if i == 200:
+        #     #plt.close(fig1)
+        #     print('       V0,                    V1,                    reward,                  diff,                  delta are:')
+        #     k = 1
+        #     for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
+        #         print(k,
+        #               '   ', np.around(j, 4),
+        #               '              ', np.around(z, 4),
+        #               '              ', np.around(q, 4),
+        #               '              ', np.around(x, 4),
+        #               '              ', np.around(u, 4), end='\n')
+        #         k += 1
+        #     print('Counter is:', counter)
+        #     print('Diff is >= 1:', cnt, 'times')
+        #     print(fores)
+        #     fig = plt.figure(figsize=(10, 4))
+        #     plt.plot(rew)
+        #     fig.savefig(f"reward_{episode}")
+        #     plt.close(fig)
+        #     print('Total updates are:', update)
+        #     print('Total problems are:', problem)
+        #     # for t in diaf:
+        #     #     print(t, end='\n')
+        #     break
+        #print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         print('%%%%%%%%%%%%%   I =', i, '  %%%%%%%%%%%%%')
         # get current value of value function for observation0
-        print('np.array([observation0]) is:', np.array([observation0]), np.shape(np.array([observation0])))
-        V0 = model.critic.predict(np.array([observation0]))
+        #print('np.array([observation0]) is:', np.array([observation0]), np.shape(np.array([observation0])))
+        V0 = model.critic.predict(np.array([observation0]), verbose=0)
         V.append(V0[0])
-        print('V0 is:', V0)
+        #print('V0 is:', V0)
         # predict default action
-        A0 = model.actor.predict(np.array([observation0]))
-        print('A0 is:', A0)
+        A0 = model.actor.predict(np.array([observation0]), verbose=0)
+        #print('A0 is:', A0)
         # sample new explored action
         a0 = model.sample(A0[0], model.exploration_factor)
-        print('a0 is:', a0)
+        #print('a0 is:', a0)
         a0 = [a0]
         motion_direction = a0[0][0]
         observation1, reward, done, x, y, penetration, d, cnt_new, action_new, prob = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
@@ -121,35 +102,56 @@ def run_episode(model, x, y, radi, coord1, coord2):
         cnt = cnt_new
         rew.append(reward)
         # get current value of value function for observation1 and compute delta.
-        print('np.array([observation1]) is:', np.array([observation1]), np.shape(np.array([observation1])))
-        V1 = model.critic.predict(np.array([observation1]))
+        V1 = model.critic.predict(np.array([observation1]), verbose=0)
         Vf.append(V1[0])
-        print('V1 is:', V1)
+        #print('V1 is:', V1)
         delta = reward + model.gamma * V1 - V0
-        print('delta is:', delta, np.shape(delta))
+        #print('delta is:', delta, np.shape(delta))
         delt.append(delta[0])
 
-       # print('[reward + model.gamma * V1] is:', [reward + model.gamma * V1], np.shape([reward + model.gamma * V1]))
-        # fit critic
-        model.critic.fit(np.array([observation0]), [reward + model.gamma * V1], batch_size=1, verbose=0)
-        #print('DELTA IS: ', delta)
-
-        if reward < 0 and delta > 0:
-            counter += 1
+        observations.append(observation0)
+        targets.append(reward + model.gamma * V1)
+        actions.append(action_new)
 
         if delta > 0:
-            model.actor.fit(np.array([observation0]), np.array(action_new), batch_size=1, verbose=0)
             observation0 = observation1
-            update += 1
-            print('##### ACTOR UPDATED #####')
-        else:
-            print('##### ACTOR NOT UPDATED #####')
+
+        if i % batch_sz == 0 and i != 0:
+            rand = np.random.choice(range(len(observations)), size=batch_sz)
+            obs_batch = np.array([observations[n] for n in rand])
+            target_batch = np.array([targets[n] for n in rand])
+            delt_batch = np.array([delt[n] for n in rand])
+            delt_rand = np.argwhere(delt_batch > 0)[0]
+            act_batch = np.array([actions[n] for n in delt_rand])
+            actor_obs_batch = np.array([observations[n] for n in delt_rand])
+            # print('[reward + model.gamma * V1] is:', [reward + model.gamma * V1], np.shape([reward + model.gamma * V1]))
+            # fit critic
+            model.critic.fit(obs_batch, target_batch, batch_size=10, verbose=0)
+            #print('DELTA IS: ', delta)
+
+            if reward < 0 and delta > 0:
+                counter += 1
+
+            model.actor.fit(actor_obs_batch, act_batch, batch_size=10, verbose=0)
+            # observation0 = observation1
+            #     update += 1
+            #     print('##### ACTOR UPDATED #####')
+            # else:
+            #     print('##### ACTOR NOT UPDATED #####')
 
         if done:
+            x = np.array([initial[0][0]])
+            y = np.array([initial[0][1]])
+            f1 = force(x, y, float(radi), coord1, coord2)
+            pen_prev = f1[0]
+            pen_init = pen_prev
+            observation0 = f1[1]
+            fig = plt.figure(figsize=(10, 4))
             plt.plot(rew)
-            plt.pause(0.5)
-            print('Total updates are:', update)
-            print('Total problems are:', problem)
+            fig.savefig(f"reward_{episode}")
+            plt.close(fig)
+            # print('Total updates are:', update)
+            # print('Total problems are:', problem)
 
         # save and append trajectory.
         # step = np.zeros(2)
@@ -163,30 +165,29 @@ def run_episode(model, x, y, radi, coord1, coord2):
         # input('Continue?')
 
         # save and append trajectory.
-        step = {"observation0": observation0, "observation1": observation1,
-                "V0": V0[0], "V1": V1[0], "A0": A0[0][:], "a0": a0[0][:], "normalized action": action_new[0][:],
-                "reward": reward, "delta": delta[0][0]}
-        trajectory.append(step)
+    #     step = {"observation0": observation0, "observation1": observation1,
+    #             "V0": V0[0], "V1": V1[0], "A0": A0[0][:], "a0": a0[0][:], "normalized action": action_new[0][:],
+    #             "reward": reward, "delta": delta[0][0]}
+    #     trajectory.append(step)
+    #
+    # return trajectory
 
-    return trajectory
 
-
-def run_batch(model, pt_x, pt_y, ra, coor1, coor2, batch_sz):
+def run_batch(model, pt_x, pt_y, ra, coor1, coor2, batch_sz, episode):
     """
     Accepts CACLA model and 'batch size'. Runs number of episodes equal to batch_size.
     Logs the rewards and at the end returns all traversed trajectories.
     """
-    trajectories = []
-    total_steps = 0
+    # trajectories = []
 
     # run n=batch_size episodes. save trajectories on the way.
     for _ in range(batch_sz):
-        trajectory = run_episode(model, pt_x, pt_y, float(ra), coor1, coor2)
-        total_steps += len(trajectory)
+        run_episode(model, pt_x, pt_y, float(ra), coor1, coor2, episode)
+        # total_steps += len(trajectory)
+        #
+        # trajectories.append(trajectory)
 
-        trajectories.append(trajectory)
-
-    return trajectories
+    # return trajectories
 
 def train(model, x_dim, y_dim, ra, coord1, coord2, n_episod, batch_sz):
     """
@@ -195,7 +196,7 @@ def train(model, x_dim, y_dim, ra, coord1, coord2, n_episod, batch_sz):
     """
     episode = 0
     while episode < n_episod:
-        run_batch(model, x_dim, y_dim, float(ra), coord1, coord2, batch_sz)
+        run_batch(model, x_dim, y_dim, float(ra), coord1, coord2, batch_sz, episode)
         episode += batch_sz
 
         # update learning and exploration rates for the algorithm.
@@ -265,8 +266,8 @@ if __name__ == "__main__":
     gamma = 0.01  # discount factor
     exploration_factor = 0.35
 
-    n_episodes = 1000
-    batch_size = 10
+    n_episodes = 1
+    batch_size = 1
 
     algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)
     #traj = run_episode(algorithm, point_x, point_y, float(radius), coordinates1, coordinates2)

@@ -10,30 +10,34 @@ def get_reward(pen_new, pen_previous, motion_dir, di, c):
     if diff >= 1:
         c += 1
     di.append(diff)
-    print('Previous Penetration =', pen_previous)
-    print('New Penetration =', pen_new)
-    print('Movement Direction =', motion_dir)
-    print('Differential Position =', diff)
+    # print('Previous Penetration =', pen_previous)
+    # print('New Penetration =', pen_new)
+    # print('Movement Direction =', motion_dir)
+    # print('Differential Position =', diff)
     reward = -10
+
+    go_right_weight = 2
+    diff_weight = 100
+    time_weight = 1
 
     if diff > 0:  # out of the corridor but directed towards it
         #print('IF #1')
         if pen_new == 0:
-            reward = 10 * diff + 1 * go_right + 1 * time
+            reward = diff_weight * diff + go_right_weight * go_right + time_weight * time
         elif pen_new <= 1:
-            reward = 10 * pen_new + 1 * go_right + 1 * time
+            reward = -diff_weight * pen_new + go_right_weight * go_right + time_weight * time
     elif diff < 0:  # out of the corridor and moving away from it
         #print('IF #2')
         if pen_new == 0:
-            reward = 10 * diff + 1 * go_right + 1 * time
+            reward = diff_weight * diff + go_right_weight * go_right + time_weight * time
         elif pen_new <= 1:
-            reward = -10 * pen_new + 1 * go_right + 1 * time
+            reward = -diff_weight * pen_new + go_right_weight * go_right + time_weight * time
     else:  # diff == 0
-        reward = 2 * go_right + 1 * time
+        reward = go_right_weight * go_right + time_weight * time
         #print('IF #3')
 
-    print('Reward is:', reward, np.shape(reward))
-    print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
+    #print('Reward is:', reward, np.shape(reward))
+    #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
 
     return reward, di, c
 
@@ -49,44 +53,41 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
     # limit the joint actions to interval [-1, 1] ...
     action = np.array(action)
 
-    print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
+    #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
     # when using relative actions, joint_positions1 = joint_positions0 + (action * action_multiplier)
     position0 = [[x[0], y[0]]]
-    print('position0 is:', position0, np.shape(position0))
-    normalized_action = action / np.sqrt(np.sum(action ** 2))
-    print('action is:', action, np.shape(action))
-    print('norm_action is:', normalized_action, np.shape(normalized_action))
+    #print('position0 is:', position0, np.shape(position0))
+    normalized_action = action / 4 / np.sqrt(np.sum(action ** 2))
+    # print('action is:', action, np.shape(action))
+    # print('norm_action is:', normalized_action, np.shape(normalized_action))
     position1 = position0 + normalized_action
     #norm_pos = position1 / np.sqrt(np.sum(position1 ** 2))
     norm_pos = position1
-    print('position1 is:', position1, np.shape(position1))
-    #print('norm_pos is:', norm_pos, np.shape(norm_pos))
-    # limit the new joint positions to interval [-1, 1] ...
+    #print('position1 is:', position1, np.shape(position1))
 
     ################# ??????????????????? ###################
     # self.iteration_n += 1
 
     # calculate return values
-    '''print('position1[0][0] is: ', position1[0][0])
-    print('position1[0][1] is: ', position1[0][1])'''
     f2 = force(norm_pos[0][0], norm_pos[0][1], float(radi), coord1, coord2)
     penetration_new = f2[0]
     observation = f2[1]
     #print('Observation in take step is:', observation, np.shape(observation))
 
     if penetration_new > 1:
-        problem += 1
-        norm_pos = init_pos
-        print('####### PROBLEM #######')
-        #print('position1 =', position1, np.shape(position1))
-        f3 = force(norm_pos[0][0], norm_pos[0][1], float(radi), coord1, coord2)
-        penetration_new = f3[0]
-        observation = f3[1]
-        penetration_prev = pen_init
-        motion_dir = -1
-        #print('Observation in take step  problem is:', observation, np.shape(observation))
+        done = True
+        # problem += 1
+        # norm_pos = init_pos
+        # print('####### PROBLEM #######')
+        # #print('position1 =', position1, np.shape(position1))
+        # f3 = force(norm_pos[0][0], norm_pos[0][1], float(radi), coord1, coord2)
+        # penetration_new = f3[0]
+        # observation = f3[1]
+        # penetration_prev = pen_init
+        # motion_dir = -1
+        # #print('Observation in take step  problem is:', observation, np.shape(observation))
 
-    print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
+    #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
 
     reward, dif, co = get_reward(penetration_new, penetration_prev, motion_dir, dif, co)
 
