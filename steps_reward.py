@@ -17,7 +17,8 @@ def get_reward(pen_new, pen_previous, motion_dir, di, c):
     reward = -10
 
     go_right_weight = 2
-    diff_weight = 100
+    diff_weight = 200
+    pen_weight = 5
     time_weight = 1
 
     if diff > 0:  # out of the corridor but directed towards it
@@ -25,15 +26,15 @@ def get_reward(pen_new, pen_previous, motion_dir, di, c):
         if pen_new == 0:
             reward = diff_weight * diff + go_right_weight * go_right + time_weight * time
         elif pen_new <= 1:
-            reward = -diff_weight * pen_new + go_right_weight * go_right + time_weight * time
+            reward = pen_weight * pen_new + go_right_weight * go_right + time_weight * time
     elif diff < 0:  # out of the corridor and moving away from it
         #print('IF #2')
-        if pen_new == 0:
+        if pen_previous == 0:
             reward = diff_weight * diff + go_right_weight * go_right + time_weight * time
         elif pen_new <= 1:
-            reward = -diff_weight * pen_new + go_right_weight * go_right + time_weight * time
+            reward = -2*pen_weight * pen_new + go_right_weight * go_right + time_weight * time
     else:  # diff == 0
-        reward = go_right_weight * go_right + time_weight * time
+        reward = 15 + go_right_weight * go_right + time_weight * time
         #print('IF #3')
 
     #print('Reward is:', reward, np.shape(reward))
@@ -74,7 +75,7 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
     observation = f2[1]
     #print('Observation in take step is:', observation, np.shape(observation))
 
-    if penetration_new > 1:
+    if penetration_new > 0.6:
         done = True
         # problem += 1
         # norm_pos = init_pos
@@ -98,13 +99,14 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
     x = norm_pos[0][0]
     y = norm_pos[0][1]
 
-    if x - float(radi) > coord1[-1, 0] and y - float(radi) > coord1[-1, 1] and y + float(radi) < coord2[-1, 1]:
+    if (x - float(radi) > coord1[-1, 0] and y - float(radi) > coord1[-1, 1] and y + float(radi) < coord2[-1, 1]) or \
+            (x + float(radi) < coord1[0, 0] and y - float(radi) > coord1[0, 1] and y + float(radi) < coord2[0, 1]):
         # print('cx - rad = ', x - float(rad), ', coords1[-1,0] = ', coords1[-1, 0])
         # print('coords2[-1,1] = ', coords2[-1, 1], ', cy - rad = ', y - float(rad), ', coords1[-1,1] = ', coords1[-1, 1])
         done = True
     # done = True if distance < 0.01 or self.iteration_n > 100 else False
 
-    return observation, reward, done, [x], [y], penetration_new, dif, co, normalized_action, problem
+    return observation, reward, done, [x], [y], penetration_new, dif, co, problem
 
 def take_step_test(action, x, y, r, coord1, coord2, penetration_prev, motion_dir):
 
@@ -120,7 +122,7 @@ def take_step_test(action, x, y, r, coord1, coord2, penetration_prev, motion_dir
     penetration_new = f5[0]
     observation = f5[1]
 
-    reward, dif, co = get_reward(penetration_new, penetration_prev, motion_dir, [], [])
+    reward, dif, co = get_reward(penetration_new, penetration_prev, motion_dir, [], 0)
 
     x = position1[0][0][0]
     y = position1[0][0][1]

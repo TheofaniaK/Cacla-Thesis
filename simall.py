@@ -24,7 +24,8 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     rew = []
     d = []
     delt = []
-    batch_sz = 32
+    new_pen = []
+    batch_sz = 20
     observations = []
     targets = []
     actions = []
@@ -94,8 +95,9 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         #print('a0 is:', a0)
         a0 = [a0]
         motion_direction = a0[0][0]
-        observation1, reward, done, x, y, penetration, d, cnt_new, action_new, prob = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
+        observation1, reward, done, x, y, penetration, d, cnt_new, prob = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
         pen_prev = penetration
+        new_pen.append(penetration)
         problem = prob
         if cnt_new == cnt + 1:
             fores.append(i)
@@ -111,7 +113,7 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
 
         observations.append(observation0)
         targets.append(reward + model.gamma * V1)
-        actions.append(action_new)
+        actions.append(a0)
 
         if delta > 0:
             observation0 = observation1
@@ -150,6 +152,17 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
             plt.plot(rew)
             fig.savefig(f"reward_{episode}")
             plt.close(fig)
+            ###############################################
+            fig1 = plt.figure(figsize=(10, 4))
+            plt.plot(d)
+            plt.plot(new_pen)
+            fig1.savefig(f"diff_{episode}")
+            plt.close(fig1)
+            ###############################################
+            # fig2 = plt.figure(figsize=(10, 4))
+            # plt.plot(new_pen)
+            # fig1.savefig(f"Penetration_{episode}")
+            # plt.close(fig2)
             # print('Total updates are:', update)
             # print('Total problems are:', problem)
 
@@ -273,8 +286,8 @@ if __name__ == "__main__":
     #traj = run_episode(algorithm, point_x, point_y, float(radius), coordinates1, coordinates2)
     train(algorithm, point_x, point_y, float(radius), coordinates1, coordinates2, n_episodes, batch_size)
     #input('Continue?')
-    algorithm.critic.save_weights('model.h5')
-    algorithm.actor.save_weights('model.h6')
+    # algorithm.critic.save_weights('model.h5')
+    # algorithm.actor.save_weights('model.h6')
     pnt_x, pnt_y, coords1, coords2, rad, offs = simulation()
     test(algorithm, 20, pnt_x, pnt_y, coords1, coords2, rad)
     print('############  REACHED THE END  ############')
