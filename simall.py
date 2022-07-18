@@ -336,7 +336,7 @@ if __name__ == "__main__":
     gamma = 0.01  # discount factor
     exploration_factor = 0.35
 
-    n_episodes = 10
+    n_episodes = 100
     batch_size = 1
 
     algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)
