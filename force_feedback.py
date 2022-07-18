@@ -66,7 +66,7 @@ def force(cx, cy, radi, coord1, coord2):
             direction = [-(px1 - cx) / math.sqrt((px1 - cx) ** 2 + (py1 - cy) ** 2),
                          -(py1 - cy) / math.sqrt((px1 - cx) ** 2 + (py1 - cy) ** 2)]
         #case = 9
-    elif (cy >= py2) and (cx - radi >= coord1[0, 0]):
+    elif (cy >= py2) and (cx - radi >= coord2[0, 0]):
         # print('3')
         #go_down = True
         force_feed = k * (radi + d2)
@@ -76,7 +76,7 @@ def force(cx, cy, radi, coord1, coord2):
             direction = [(px2 - cx) / math.sqrt((px2 - cx) ** 2 + (py2 - cy) ** 2),
                          (py2 - cy) / math.sqrt((px2 - cx) ** 2 + (py2 - cy) ** 2)]
         #case = 1
-    elif ((cy < py2) and (d2 < radi)) and (cx - radi >= coord1[0, 0]):
+    elif ((cy < py2) and (d2 < radi)) and (cx - radi >= coord2[0, 0]):
         # print('4')
         #go_down = True
         force_feed = k * (radi - d2)
@@ -203,5 +203,7 @@ def force(cx, cy, radi, coord1, coord2):
         force_feed = 0
         direction = [0, 0]
 
+    observ = [force_feed, direction[0], direction[1]]
+
     # return force, direction, go_up, go_down, go_right
-    return force_feed, direction
+    return force_feed, direction, observ

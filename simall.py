@@ -25,10 +25,6 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     d = []
     delt = []
     new_pen = []
-    batch_sz = 20
-    observations = []
-    targets = []
-    actions = []
     initial = [[x[0], y[0]]]
     # model.critic.save_weights('model.h5')
     # model.actor.save_weights('model.h6')
@@ -36,7 +32,7 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     f1 = force(x, y, float(radi), coord1, coord2)
     pen_prev = f1[0]
     pen_init = pen_prev
-    observation0 = f1[1]
+    observation0 = f1[2]
     done = False
     problem = 0
     i = 0
@@ -50,36 +46,37 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     cnt = 0
     fores = []
     #diaf = []
-    for i in range(1000):
+    while not done:
+        i += 1
         # if i % 50 == 0:
         #     plt.cla()
         #     ax1.axis('equal')
-        #     ax1.plot(coords1[:, 0], coords1[:, 1])
-        #     ax1.plot(coords2[:, 0], coords2[:, 1])
-        # if i == 200:
-        #     #plt.close(fig1)
-        #     print('       V0,                    V1,                    reward,                  diff,                  delta are:')
-        #     k = 1
-        #     for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
-        #         print(k,
-        #               '   ', np.around(j, 4),
-        #               '              ', np.around(z, 4),
-        #               '              ', np.around(q, 4),
-        #               '              ', np.around(x, 4),
-        #               '              ', np.around(u, 4), end='\n')
-        #         k += 1
-        #     print('Counter is:', counter)
-        #     print('Diff is >= 1:', cnt, 'times')
-        #     print(fores)
-        #     fig = plt.figure(figsize=(10, 4))
-        #     plt.plot(rew)
-        #     fig.savefig(f"reward_{episode}")
-        #     plt.close(fig)
-        #     print('Total updates are:', update)
-        #     print('Total problems are:', problem)
-        #     # for t in diaf:
-        #     #     print(t, end='\n')
-        #     break
+        #     ax1.plot(coord1[:, 0], coord1[:, 1])
+        #     ax1.plot(coord2[:, 0], coord2[:, 1])
+        if i == 200:
+            #plt.close(fig1)
+            print('       V0,                    V1,                    reward,                  diff,                  delta are:')
+            k = 1
+            for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
+                print(k,
+                      '   ', np.around(j, 4),
+                      '              ', np.around(z, 4),
+                      '              ', np.around(q, 4),
+                      '              ', np.around(x, 4),
+                      '              ', np.around(u, 4), end='\n')
+                k += 1
+            print('Counter is:', counter)
+            print('Diff is >= 1:', cnt, 'times')
+            print(fores)
+            fig = plt.figure(figsize=(10, 4))
+            plt.plot(rew)
+            fig.savefig(f"reward_{episode}")
+            plt.close(fig)
+            print('Total updates are:', update)
+            print('Total problems are:', problem)
+            # for t in diaf:
+            #     print(t, end='\n')
+            break
         #print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         print('%%%%%%%%%%%%%   I =', i, '  %%%%%%%%%%%%%')
         # get current value of value function for observation0
@@ -95,7 +92,9 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         #print('a0 is:', a0)
         a0 = [a0]
         motion_direction = a0[0][0]
-        observation1, reward, done, x, y, penetration, d, cnt_new, prob = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
+        x_prev = x
+        y_prev = y
+        observation1, reward, done, x, y, penetration, d, cnt_new, prob, actual_action = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
         pen_prev = penetration
         new_pen.append(penetration)
         problem = prob
@@ -111,35 +110,25 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         #print('delta is:', delta, np.shape(delta))
         delt.append(delta[0])
 
-        observations.append(observation0)
-        targets.append(reward + model.gamma * V1)
-        actions.append(a0)
+        model.critic.fit(np.array([observation0]), [reward + model.gamma * V1], batch_size=1, verbose=0)
 
         if delta > 0:
             observation0 = observation1
 
-        if i % batch_sz == 0 and i != 0:
-            rand = np.random.choice(range(len(observations)), size=batch_sz)
-            obs_batch = np.array([observations[n] for n in rand])
-            target_batch = np.array([targets[n] for n in rand])
-            delt_batch = np.array([delt[n] for n in rand])
-            delt_rand = np.argwhere(delt_batch > 0)[0]
-            act_batch = np.array([actions[n] for n in delt_rand])
-            actor_obs_batch = np.array([observations[n] for n in delt_rand])
-            # print('[reward + model.gamma * V1] is:', [reward + model.gamma * V1], np.shape([reward + model.gamma * V1]))
-            # fit critic
-            model.critic.fit(obs_batch, target_batch, batch_size=10, verbose=0)
-            #print('DELTA IS: ', delta)
+        #print('DELTA IS: ', delta)
 
-            if reward < 0 and delta > 0:
-                counter += 1
+        if reward < 0 and delta > 0:
+            counter += 1
 
-            model.actor.fit(actor_obs_batch, act_batch, batch_size=10, verbose=0)
-            # observation0 = observation1
-            #     update += 1
-            #     print('##### ACTOR UPDATED #####')
-            # else:
-            #     print('##### ACTOR NOT UPDATED #####')
+        if delta > 0:
+            model.actor.fit(np.array([observation0]), np.array(actual_action), batch_size=1, verbose=0)
+            observation0 = observation1
+            update += 1
+            print('##### ACTOR UPDATED #####')
+        else:
+            print('##### ACTOR NOT UPDATED #####')
+            # x = x_prev
+            # y = y_prev
 
         if done:
             x = np.array([initial[0][0]])
@@ -147,24 +136,17 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
             f1 = force(x, y, float(radi), coord1, coord2)
             pen_prev = f1[0]
             pen_init = pen_prev
-            observation0 = f1[1]
-            fig = plt.figure(figsize=(10, 4))
+            observation0 = f1[2]
+            fig2 = plt.figure(figsize=(10, 4))
             plt.plot(rew)
-            fig.savefig(f"reward_{episode}")
-            plt.close(fig)
+            fig2.savefig(f"reward_{episode}")
+            plt.close(fig2)
             ###############################################
-            fig1 = plt.figure(figsize=(10, 4))
+            fig3 = plt.figure(figsize=(10, 4))
             plt.plot(d)
             plt.plot(new_pen)
-            fig1.savefig(f"diff_{episode}")
-            plt.close(fig1)
-            ###############################################
-            # fig2 = plt.figure(figsize=(10, 4))
-            # plt.plot(new_pen)
-            # fig1.savefig(f"Penetration_{episode}")
-            # plt.close(fig2)
-            # print('Total updates are:', update)
-            # print('Total problems are:', problem)
+            fig3.savefig(f"diff_{episode}")
+            plt.close(fig3)
 
         # save and append trajectory.
         # step = np.zeros(2)
@@ -225,18 +207,33 @@ def test(model, n, pt_x, pt_y, coor1, coor2, ra):
     fig5 = plt.figure()
     ax5 = fig5.add_subplot(1, 1, 1)
     ax5.axis('equal')
-    ax5.plot(coor1[:, 0], coor1[:, 1])
-    ax5.plot(coor2[:, 0], coor2[:, 1])
+    ft = force(pt_x, pt_y, float(ra), coor1, coor2)
+    penetration = ft[0]
+    observation = ft[2]
+    init_x = pt_x
+    init_y = pt_y
+    init_obs = observation
+    init_pen = penetration
     for i in range(n):
+        times = 0
+        ax5.plot(coor1[:, 0], coor1[:, 1])
+        ax5.plot(coor2[:, 0], coor2[:, 1])
         print('I is:', i)
         # reset the environment.
-        #observation = model.env.reset()
-        ft = force(pt_x, pt_y, float(ra), coor1, coor2)
-        penetration = ft[0]
-        observation = ft[1]
+        pt_x = init_x
+        pt_y = init_y
+        observation = init_obs
+        penetration = init_pen
+        if i != 0:
+            ft = force(pt_x[0], pt_y[0], float(ra), coor1, coor2)
+            penetration = ft[0]
+            observation = ft[2]
         done = False
         # repeat until done (arm reaches the target / 100 steps).
         while not done:
+            if times == 50:
+                plt.cla()
+                break
             # if model.env.simulation:
             #     model.env.render()
             # use actor to predict next action.
@@ -253,14 +250,69 @@ def test(model, n, pt_x, pt_y, coor1, coor2, ra):
             ax5.add_patch(circle[0])
             ax5.axis('equal')
             ax5.plot(pt_x[0], pt_y[0], 'o', color='r')
-            plt.pause(0.02)
+            plt.pause(0.1)
             print("iteration:", i, "reward:", reward, "distance:", distance, "done:", done)
             # if distance < 0.01:
             if done:
                 success += 1
-    plt.savefig("test.png")
+            times += 1
+        plt.savefig(f"test_{times}")
         # model.env.render()
     print("success rate:", success / n)
+
+def testing(model, n):
+    """
+    tests the model.
+    n is the number of locations to test.
+    """
+    success = 0
+    for i in range(n):
+        times = 0
+        pt_x, pt_y, coor1, coor2, ra, offst = simulation()
+        plt.pause(0.5)
+        fig6 = plt.figure()
+        ax6 = fig6.add_subplot(1, 1, 1)
+        ax6.axis('equal')
+        ax6.plot(coor1[:, 0], coor1[:, 1])
+        ax6.plot(coor2[:, 0], coor2[:, 1])
+        ft = force(pt_x[0], pt_y[0], float(ra), coor1, coor2)
+        penetration = ft[0]
+        observation = ft[2]
+        print('I is:', i)
+        # reset the environment.
+        # if i != 0:
+        #     ft = force(pt_x[0], pt_y[0], float(ra), coor1, coor2)
+        #     penetration = ft[0]
+        #     observation = ft[2]
+        done = False
+        # repeat until done (arm reaches the target / 100 steps).
+        while not done:
+            # use actor to predict next action.
+            action = model.actor.predict(np.array([observation]))
+            motion_dir = action[0][0]
+            normalized_action = action / np.sqrt(np.sum(action ** 2))
+            print(np.sqrt(np.sum(action ** 2)))
+            print(normalized_action)
+            # make a step.
+            observation, reward, done, pt_x, pt_y, pen_new, action_new, distance = take_step_test([action], pt_x, pt_y, float(ra), coor1, coor2, penetration, motion_dir)
+            penetration = pen_new
+            circle = [plt.Circle((pt_x[0], pt_y[0]), float(ra), color='k', fill=False)]
+            ax6.add_patch(circle[0])
+            ax6.axis('equal')
+            ax6.plot(pt_x[0], pt_y[0], 'o', color='r')
+            plt.pause(0.1)
+            print("iteration:", i, "reward:", reward, "distance:", distance, "done:", done)
+            # if distance < 0.01:
+            if done:
+                success += 1
+            if times == 50:
+                plt.close(fig6)
+                done = True
+            times += 1
+        plt.savefig(f"test_{times}")
+        # model.env.render()
+    print("success rate:", success / n)
+
 
 ######################################################################################################################################################
 
@@ -268,9 +320,14 @@ def test(model, n, pt_x, pt_y, coor1, coor2, ra):
 if __name__ == "__main__":
     point_x, point_y, coordinates1, coordinates2, radius, offset = simulation()
     f = force(point_x, point_y, float(radius), coordinates1, coordinates2)
+    # print('pen is:', f[0], np.shape(f[0]))
+    # print('dianisma is:', f[1], np.shape(f[1]))
+
+    # observ = [f[0], f[1][0], f[1][1]]
+    # print(observ, np.shape(observ))
 
     # initialize parameters
-    input_dim = 2  # env.observation_space.shape[0]
+    input_dim = 3  # env.observation_space.shape[0]
     output_dim = 2  # env.action_space.shape[0]
     alpha = 0.01  # learning rate for actor
     beta = 0.01  # learning rate for critic
@@ -279,7 +336,7 @@ if __name__ == "__main__":
     gamma = 0.01  # discount factor
     exploration_factor = 0.35
 
-    n_episodes = 1
+    n_episodes = 10
     batch_size = 1
 
     algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)
@@ -288,8 +345,11 @@ if __name__ == "__main__":
     #input('Continue?')
     # algorithm.critic.save_weights('model.h5')
     # algorithm.actor.save_weights('model.h6')
-    pnt_x, pnt_y, coords1, coords2, rad, offs = simulation()
-    test(algorithm, 20, pnt_x, pnt_y, coords1, coords2, rad)
+
+    #pnt_x, pnt_y, coords1, coords2, rad, offs = simulation()
+    #test(algorithm, 20, pnt_x, pnt_y, coords1, coords2, rad)
+
+    testing(algorithm, 20)
     print('############  REACHED THE END  ############')
 
     sys.exit()
