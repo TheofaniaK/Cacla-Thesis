@@ -112,9 +112,6 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
 
         model.critic.fit(np.array([observation0]), [reward + model.gamma * V1], batch_size=1, verbose=0)
 
-        if delta > 0:
-            observation0 = observation1
-
         #print('DELTA IS: ', delta)
 
         if reward < 0 and delta > 0:
@@ -137,16 +134,26 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
             pen_prev = f1[0]
             pen_init = pen_prev
             observation0 = f1[2]
-            fig2 = plt.figure(figsize=(10, 4))
-            plt.plot(rew)
+
+            fig2, (ax1, ax2) = plt.subplots(1, 2)
+            fig2.suptitle('Reward and Penetration & Diff position')
+            ax1.plot(rew, label='reward')
+            ax2.plot(new_pen, label='penetration', color='red')
+            ax2.plot(d, label='Diff position')
             fig2.savefig(f"reward_{episode}")
+
+            # fig2 = plt.figure(figsize=(10, 4))
+            # plt.plot(rew, label='reward')
+            # plt.plot(new_pen, label='penetration')
+            # fig2.savefig(f"reward_{episode}")
+            plt.legend()
             plt.close(fig2)
             ###############################################
-            fig3 = plt.figure(figsize=(10, 4))
-            plt.plot(d)
-            plt.plot(new_pen)
-            fig3.savefig(f"diff_{episode}")
-            plt.close(fig3)
+            # fig3 = plt.figure(figsize=(10, 4))
+            # plt.plot(d)
+            # plt.plot(new_pen)
+            # fig3.savefig(f"diff_{episode}")
+            # plt.close(fig3)
 
         # save and append trajectory.
         # step = np.zeros(2)
@@ -329,14 +336,14 @@ if __name__ == "__main__":
     # initialize parameters
     input_dim = 3  # env.observation_space.shape[0]
     output_dim = 2  # env.action_space.shape[0]
-    alpha = 0.01  # learning rate for actor
-    beta = 0.01  # learning rate for critic
+    alpha = 0.05  # learning rate for actor
+    beta = 0.05  # learning rate for critic
     lr_decay = 0.997  # lr decay
     exploration_decay = 0.997  # exploration decay
-    gamma = 0.01  # discount factor
-    exploration_factor = 0.35
+    gamma = 0.0  # discount factor
+    exploration_factor = 0.25
 
-    n_episodes = 100
+    n_episodes = 300
     batch_size = 1
 
     algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)

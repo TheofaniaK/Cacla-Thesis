@@ -61,7 +61,7 @@ class Cacla:
         Creates actor. Uses 1 hidden layers with number of neurons 5 * input_dim (40).
         initializes weights to some small value.
         """
-        l1_size = 20 * input_d
+        l1_size = 15 * input_d
 
         model = Sequential()
         model.add(Dense(l1_size, input_dim=input_d, activation="relu",
@@ -78,7 +78,7 @@ class Cacla:
         """
         See self._create_actor.
         """
-        l1_size = 20 * input_d
+        l1_size = 15 * input_d
 
         model = Sequential()
         model.add(Dense(l1_size, input_dim=input_d, activation="relu",

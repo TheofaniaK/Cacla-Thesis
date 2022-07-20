@@ -10,7 +10,7 @@ def simulation():
     # step = input("Choose the step of the cuclic object: ")
     mode = input("Choose 0 for creating trajectory, or 1 for existing: ")
     offset_sim = 1
-    r_sim = 0.2
+    r_sim = 0.1
     coords1_sim = np.array([])
     coords2_sim = np.array([])
 
