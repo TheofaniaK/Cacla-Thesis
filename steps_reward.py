@@ -1,7 +1,14 @@
 import numpy as np
 from force_feedback import force
 
-def get_reward(pen_new, pen_previous, motion_dir, di, c):
+checkpoints = [(6/20)*(i+1) for i in range(20)]
+
+def init():
+    global checkpoints
+    checkpoints = [(6 / 20) * (i + 1) for i in range(20)]
+
+def get_reward(x, pen_new, pen_previous, motion_dir, di, c):
+    global checkpoints
     time = -1
     go_right = -0.5
     if motion_dir > 0:
@@ -15,8 +22,6 @@ def get_reward(pen_new, pen_previous, motion_dir, di, c):
     # print('Movement Direction =', motion_dir)
     # print('Differential Position =', diff)
 
-    #reward = -10
-
     go_right_weight = 2
     diff_weight = 200
     pen_weight = 10
@@ -25,24 +30,29 @@ def get_reward(pen_new, pen_previous, motion_dir, di, c):
     #+ go_right_weight * go_right
     #+ time_weight * time
 
+    before = len(checkpoints)
+    checkpoints = [i for i in checkpoints if i > x]
+    after = len(checkpoints)
+
     if diff > 0:  # out of the corridor but directed towards it
         #print('IF #1')
         if pen_new == 0:
-            reward = diff_weight * diff + go_right_weight * go_right
+            reward = 2 * diff_weight * diff + go_right_weight * go_right
         #elif pen_new <= 1:
         else:
-            reward = pen_weight * pen_new + go_right_weight * go_right
+            reward = 4 * pen_weight * pen_new + go_right_weight * go_right
     elif diff < 0:  # out of the corridor and moving away from it
         #print('IF #2')
         if pen_previous == 0:
             reward = diff_weight * diff #+ go_right_weight * go_right
         #elif pen_new <= 1:
         else:
-            reward = -2*pen_weight * pen_new #+ go_right_weight * go_right
+            reward = -20 * pen_weight * pen_new #+ go_right_weight * go_right
     else:  # diff == 0
-        reward = 5 + go_right_weight * go_right
+        reward = 10 + go_right_weight * go_right
         #print('IF #3')
 
+    reward += 10 * (before - after)
     #print('Reward is:', reward, np.shape(reward))
     #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
 
@@ -83,6 +93,7 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
 
     # calculate return values
     f2 = force(position1[0][0], position1[0][1], float(radi), coord1, coord2)
+    print('values of f in take step are:', f2[0], np.shape(f2[0]), f2[1], np.shape(f2[1]), f2[2], np.shape(f2[2]))
     penetration_new = f2[0]
     observation = f2[2]
     #print('Observation in take step is:', observation, np.shape(observation))
@@ -102,7 +113,7 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
 
     #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
 
-    reward, dif, co = get_reward(penetration_new, penetration_prev, motion_dir, dif, co)
+    reward, dif, co = get_reward(x[0], penetration_new, penetration_prev, motion_dir, dif, co)
 
     #print('observation in take step is:', observation)
     # distance = self.get_distance()
@@ -143,7 +154,7 @@ def take_step_test(action, x, y, r, coord1, coord2, penetration_prev, motion_dir
     penetration_new = f5[0]
     observation = f5[2]
 
-    reward, dif, co = get_reward(penetration_new, penetration_prev, motion_dir, [], 0)
+    reward, dif, co = get_reward(x[0], penetration_new, penetration_prev, motion_dir, [], 0)
 
     x = position1[0][0][0]
     y = position1[0][0][1]

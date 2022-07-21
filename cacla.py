@@ -21,8 +21,9 @@ class Cacla:
         self.beta = b
 
         # creates neural networks.
-        self.actor = self._create_actor(input_d, output_d, a)
-        self.critic = self._create_critic(input_d, 1, b)
+        # self.actor = self._create_actor(input_d, output_d, a)
+        # self.critic = self._create_critic(input_d, 1, b)
+        self.actor, self.critic = self._create_model(input_d, output_d, 1, a)
 
     def update_lr(self, lr_dec):
         """
@@ -89,3 +90,26 @@ class Cacla:
         adam = keras.optimizers.Adam(learning_rate=learning_rate)
         model.compile(loss='mean_squared_error', optimizer=adam)
         return model
+
+    @staticmethod
+    def _create_model(input_d, output_a, output_c, learning_rate):
+
+        l1_size = 5 * input_d
+
+        input_layer = keras.Input(input_d)
+        hidden_layer = Dense(l1_size, activation="elu",
+                             kernel_initializer=keras.initializers.random_normal(0.0, np.sqrt(2 / input_d)))(input_layer)
+
+        actor = Dense(output_a, activation="linear",
+                      kernel_initializer=keras.initializers.random_normal(0.0, np.sqrt(2 / l1_size)))(hidden_layer)
+
+        critic = Dense(output_c, activation='linear',
+                       kernel_initializer=keras.initializers.random_normal(0.0, np.sqrt(2 / l1_size)))(hidden_layer)
+
+        adam = keras.optimizers.Adam(learning_rate=learning_rate)
+        actor_model = keras.Model(inputs=input_layer, outputs=actor)
+        critic_model = keras.Model(inputs=input_layer, outputs=critic)
+        actor_model.compile(loss='mean_squared_error', optimizer=adam)
+        critic_model.compile(loss='mean_squared_error', optimizer=adam)
+
+        return actor_model, critic_model
