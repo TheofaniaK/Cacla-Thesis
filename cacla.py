@@ -21,9 +21,9 @@ class Cacla:
         self.beta = b
 
         # creates neural networks.
-        # self.actor = self._create_actor(input_d, output_d, a)
-        # self.critic = self._create_critic(input_d, 1, b)
-        self.actor, self.critic = self._create_model(input_d, output_d, 1, a)
+        self.actor = self._create_actor(input_d, output_d, a)
+        self.critic = self._create_critic(input_d, 1, b)
+        # self.actor, self.critic = self._create_model(input_d, output_d, 1, a)
 
     def update_lr(self, lr_dec):
         """

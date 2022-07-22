@@ -52,7 +52,8 @@ def get_reward(x, pen_new, pen_previous, motion_dir, di, c):
         reward = 10 + go_right_weight * go_right
         #print('IF #3')
 
-    reward += 10 * (before - after)
+    # reward += 10 * (before - after)
+
     #print('Reward is:', reward, np.shape(reward))
     #print('<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>><><><><><><><><><><><><>')
 

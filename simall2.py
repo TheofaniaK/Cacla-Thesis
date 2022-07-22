@@ -74,10 +74,16 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
             print('Counter is:', counter)
             print('Diff is >= 1:', cnt, 'times')
             print(fores)
-            fig = plt.figure(figsize=(10, 4))
-            plt.plot(rew)
-            fig.savefig(f"reward_{episode}")
-            plt.close(fig)
+            fig9, (ax1, ax2, ax3) = plt.subplots(1, 3)
+            fig9.suptitle('Reward and Penetration & Diff position and Loss')
+            ax1.plot(rew, label='reward')
+            ax2.plot(new_pen, label='penetration', color='red')
+            ax2.plot(d, label='Diff position')
+            ax3.plot(actor_loss, label='actor_loss')
+            ax3.plot(critic_loss, label='critic_loss')
+            plt.legend()
+            fig9.savefig(f"reward_{episode}")
+            plt.close(fig9)
             print('Total updates are:', update)
             print('Total problems are:', problem)
             # for t in diaf:
@@ -338,7 +344,7 @@ def testing(model, n):
             # if distance < 0.01:
             if done:
                 success += 1
-            if times == 50:
+            if times == 200:
                 plt.close(fig6)
                 done = True
             times += 1
@@ -359,14 +365,14 @@ if __name__ == "__main__":
     # initialize parameters
     input_dim = 3  # env.observation_space.shape[0]
     output_dim = 2  # env.action_space.shape[0]
-    alpha = 0.1  # learning rate for actor
-    beta = 0.1  # learning rate for critic
+    alpha = 0.01  # learning rate for actor
+    beta = 0.01  # learning rate for critic
     lr_decay = 0.997  # lr decay
     exploration_decay = 0.997  # exploration decay
     gamma = 0.8  # discount factor
     exploration_factor = 0.25
 
-    n_episodes = 20
+    n_episodes = 50
     batch_size = 1
 
     algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)
