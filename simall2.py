@@ -7,7 +7,7 @@ from force_feedback import force
 """tf.test.is_gpu_available()"""
 from sim_file import simulation
 from steps_reward import take_step, take_step_test, init
-import keras.backend as K
+# import keras.backend as K
 
 def run_episode(model, x, y, radi, coord1, coord2, episode):
     """
@@ -17,6 +17,8 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     Fits critic and actor according to learning rule.
     Saves each step into variable trajectory, and at the end returns full list of steps.
     """
+
+    print("RUN EPISODE X AND Y:", x, y, np.shape(x), np.shape(y))
 
     # initialize variables and reset environment
     # trajectory = []
@@ -33,7 +35,7 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     # model.critic.save_weights('model.h5')
     # model.actor.save_weights('model.h6')
     #print('initial is:', initial, np.shape(initial))
-    f1 = force(x, y, float(radi), coord1, coord2)
+    f1 = force(x[0], y[0], float(radi), coord1, coord2)
     pen_prev = f1[0]
     print('values of f are:', f1[0], np.shape(f1[0]), f1[1], np.shape(f1[1]), f1[2], np.shape(f1[2]))
     pen_init = pen_prev
@@ -51,6 +53,8 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
     cnt = 0
     fores = []
     #diaf = []
+    pos_x = []
+    pos_y = []
     init()
     while not done:
         i += 1
@@ -61,31 +65,43 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         #     ax1.plot(coord2[:, 0], coord2[:, 1])
         if i == 200:
             #plt.close(fig1)
-            print('       V0,                    V1,                    reward,                  diff,                  delta are:')
-            k = 1
-            for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
-                print(k,
-                      '   ', np.around(j, 4),
-                      '              ', np.around(z, 4),
-                      '              ', np.around(q, 4),
-                      '              ', np.around(x, 4),
-                      '              ', np.around(u, 4), end='\n')
-                k += 1
-            print('Counter is:', counter)
-            print('Diff is >= 1:', cnt, 'times')
-            print(fores)
-            fig9, (ax1, ax2, ax3) = plt.subplots(1, 3)
+            # print('       V0,                    V1,                    reward,                  diff,                  delta are:')
+            # k = 1
+            # for (j, z, q, x, u) in zip(V, Vf, rew, d, delt):
+            #     print(k,
+            #           '   ', np.around(j, 4),
+            #           '              ', np.around(z, 4),
+            #           '              ', np.around(q, 4),
+            #           '              ', np.around(x, 4),
+            #           '              ', np.around(u, 4), end='\n')
+            #     k += 1
+            # print('Counter is:', counter)
+            # print('Diff is >= 1:', cnt, 'times')
+            # print(fores)
+            fig9, (ax1, ax2) = plt.subplots(1, 2)
             fig9.suptitle('Reward and Penetration & Diff position and Loss')
+            ax1.plot(delt, label='Delta')
             ax1.plot(rew, label='reward')
             ax2.plot(new_pen, label='penetration', color='red')
             ax2.plot(d, label='Diff position')
-            ax3.plot(actor_loss, label='actor_loss')
-            ax3.plot(critic_loss, label='critic_loss')
+            # ax3.plot(actor_loss, label='actor_loss')
+            # ax3.plot(critic_loss, label='critic_loss')
             plt.legend()
             fig9.savefig(f"reward_{episode}")
             plt.close(fig9)
+
+            fig11 = plt.figure()
+            ax11 = fig11.add_subplot(1, 1, 1)
+            ax11.axis('equal')
+            ax11.plot(coord1[:, 0], coord1[:, 1])
+            ax11.plot(coord2[:, 0], coord2[:, 1])
+            ax11.scatter(pos_x, pos_y, label='trajectory')
+            plt.plot()
+            fig11.savefig(f"trajectory_{episode}")
+            plt.close(fig11)
+
             print('Total updates are:', update)
-            print('Total problems are:', problem)
+            # print('Total problems are:', problem)
             # for t in diaf:
             #     print(t, end='\n')
             break
@@ -95,17 +111,20 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         #print('np.array([observation0]) is:', np.array([observation0]), np.shape(np.array([observation0])))
         V0 = model.critic.predict(np.array([observation0]), verbose=0)
         V.append(V0[0])
-        print('V0 is:', V0, np.shape(V0))
+        # print('V0 is:', V0, np.shape(V0))
         # predict default action
         A0 = model.actor.predict(np.array([observation0]), verbose=0)
         print('A0 is:', A0, np.shape(A0))
         # sample new explored action
         a0 = model.sample(A0[0], model.exploration_factor)
-        #print('a0 is:', a0)
+        # a0 = model.sample_gr(A0[0], model.epsilon)
+        print('a0 is:', a0)
         a0 = [a0]
         motion_direction = a0[0][0]
         x_prev = x
         y_prev = y
+        pos_x.append(x)
+        pos_y.append(y)
         observation1, reward, done, x, y, penetration, d, cnt_new, prob, actual_action = take_step(a0, x, y, float(radi), coord1, coord2, pen_prev, pen_init, motion_direction, initial, d, cnt, problem)
         pen_prev = penetration
         new_pen.append(penetration)
@@ -117,7 +136,7 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
         episode_reward += reward
         # get current value of value function for observation1 and compute delta.
         V1 = model.critic.predict(np.array([observation1]), verbose=0)
-        print('np.array([observation1]) is:', np.array([observation1]), np.shape(np.array([observation1])))
+        # print('np.array([observation1]) is:', np.array([observation1]), np.shape(np.array([observation1])))
         Vf.append(V1[0])
         #print('V1 is:', V1)
         delta = reward + model.gamma * V1 - V0
@@ -153,16 +172,27 @@ def run_episode(model, x, y, radi, coord1, coord2, episode):
             pen_init = pen_prev
             observation0 = f1[2]
 
-            fig2, (ax1, ax2, ax3) = plt.subplots(1, 3)
+            fig2, (ax1, ax2) = plt.subplots(1, 2)
             fig2.suptitle('Reward and Penetration & Diff position and Loss')
+            ax1.plot(delt, label='Delta')
             ax1.plot(rew, label='reward')
             ax2.plot(new_pen, label='penetration', color='red')
             ax2.plot(d, label='Diff position')
-            ax3.plot(actor_loss, label='actor_loss')
-            ax3.plot(critic_loss, label='critic_loss')
+            # ax3.plot(actor_loss, label='actor_loss')
+            # ax3.plot(critic_loss, label='critic_loss')
             plt.legend()
             fig2.savefig(f"reward_{episode}")
             plt.close(fig2)
+
+            fig10 = plt.figure()
+            ax10 = fig10.add_subplot(1, 1, 1)
+            ax10.axis('equal')
+            ax10.plot(coord1[:, 0], coord1[:, 1])
+            ax10.plot(coord2[:, 0], coord2[:, 1])
+            ax10.scatter(pos_x, pos_y, label='trajectory')
+            plt.plot()
+            fig10.savefig(f"trajectory_{episode}")
+            plt.close(fig10)
 
             # fig2 = plt.figure(figsize=(10, 4))
             # plt.plot(rew, label='reward')
@@ -222,13 +252,25 @@ def train(model, x_dim, y_dim, ra, coord1, coord2, n_episod, batch_sz):
     episode = 0
     rewards = []
     while episode < n_episod:
+        # print('Before')
+        # print(x_dim, np.shape(x_dim))
+        # print(y_dim, np.shape(y_dim))
         reward = run_batch(model, x_dim, y_dim, float(ra), coord1, coord2, batch_sz, episode)
+        # x_dim = np.array([np.random.normal(x_dim[0], 0.2)])
+        # y_dim = np.random.normal(y_dim, 0.2)
+        # x_dim = np.array([np.random.uniform(0, 6)])
+        # y_dim = np.array([np.random.normal(y_dim[0], 0.1)])
+        # print('After')
+        # print(x_dim, np.shape(x_dim))
+        # print(y_dim, np.shape(y_dim))
         episode += batch_sz
         rewards += reward
 
         # update learning and exploration rates for the algorithm.
         model.update_lr(model.lr_decay)
-        model.update_exploration()
+        # model.update_exploration()
+        model.update_epsilon()
+        # print('################# EPSILON IS ##########################', model.epsilon)
 
     fig7 = plt.figure(figsize=(10, 4))
     fig7.suptitle('Reward per episode')
@@ -325,6 +367,7 @@ def testing(model, n):
         #     observation = ft[2]
         done = False
         # repeat until done (arm reaches the target / 100 steps).
+        rew = []
         while not done:
             # use actor to predict next action.
             action = model.actor.predict(np.array([observation]))
@@ -334,7 +377,14 @@ def testing(model, n):
             # print(normalized_action)
             # make a step.
             observation, reward, done, pt_x, pt_y, pen_new, action_new, distance = take_step_test([action], pt_x, pt_y, float(ra), coor1, coor2, penetration, motion_dir)
+            rew.append(reward)
             penetration = pen_new
+            print(pt_x[0])
+            print(coor1[-1])
+            if pt_x[0] > coor1[-1, 0]:
+                done = True
+            else:
+                done = False
             circle = [plt.Circle((pt_x[0], pt_y[0]), float(ra), color='k', fill=False)]
             ax6.add_patch(circle[0])
             ax6.axis('equal')
@@ -344,8 +394,20 @@ def testing(model, n):
             # if distance < 0.01:
             if done:
                 success += 1
+                fig15 = plt.figure(figsize=(10, 4))
+                fig15.suptitle('Reward for test')
+                plt.plot(rew, label='reward')
+                plt.legend()
+                fig15.savefig(f"Reward_for_test_{i}")
+                plt.close(fig15)
             if times == 200:
                 plt.close(fig6)
+                fig16 = plt.figure(figsize=(10, 4))
+                fig16.suptitle('Reward for test')
+                plt.plot(rew, label='reward')
+                plt.legend()
+                fig16.savefig(f"Reward_for_test_{i}")
+                plt.close(fig16)
                 done = True
             times += 1
         plt.savefig(f"test_{times}")
@@ -358,7 +420,7 @@ def testing(model, n):
 
 if __name__ == "__main__":
     point_x, point_y, coordinates1, coordinates2, radius, offset = simulation()
-    point_x = np.array([0.2])
+    # point_x = np.array([0.2])
     f = force(point_x, point_y, float(radius), coordinates1, coordinates2)
     print('values of f are in first step:', f[0], np.shape(f[0]), f[1], np.shape(f[1]), f[2], np.shape(f[2]))
 
@@ -367,15 +429,17 @@ if __name__ == "__main__":
     output_dim = 2  # env.action_space.shape[0]
     alpha = 0.01  # learning rate for actor
     beta = 0.01  # learning rate for critic
-    lr_decay = 0.997  # lr decay
-    exploration_decay = 0.997  # exploration decay
-    gamma = 0.8  # discount factor
-    exploration_factor = 0.25
+    lr_decay = 0.996  # lr decay
+    exploration_decay = 0.986  # exploration decay
+    gamma = 0.2  # discount factor
+    exploration_factor = 1  #0.25
+    epsilon = 1
+    epsilon_decay = 0.987
 
-    n_episodes = 50
+    n_episodes = 200
     batch_size = 1
 
-    algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor)
+    algorithm = Cacla(input_dim, output_dim, alpha, beta, gamma, lr_decay, exploration_decay, exploration_factor, epsilon, epsilon_decay)
     #traj = run_episode(algorithm, point_x, point_y, float(radius), coordinates1, coordinates2)
     train(algorithm, point_x, point_y, float(radius), coordinates1, coordinates2, n_episodes, batch_size)
     #input('Continue?')

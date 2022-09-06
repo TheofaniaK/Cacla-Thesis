@@ -37,10 +37,16 @@ def get_reward(x, pen_new, pen_previous, motion_dir, di, c):
     if diff > 0:  # out of the corridor but directed towards it
         #print('IF #1')
         if pen_new == 0:
-            reward = 2 * diff_weight * diff + go_right_weight * go_right
+            if go_right > 0:
+                reward = 4 * diff_weight * diff + go_right_weight * go_right
+            else:
+                reward = -2
         #elif pen_new <= 1:
         else:
-            reward = 4 * pen_weight * pen_new + go_right_weight * go_right
+            if go_right > 0:
+                reward = 4 * pen_weight * pen_new + go_right_weight * go_right
+            else:
+                reward = -2
     elif diff < 0:  # out of the corridor and moving away from it
         #print('IF #2')
         if pen_previous == 0:
@@ -49,8 +55,29 @@ def get_reward(x, pen_new, pen_previous, motion_dir, di, c):
         else:
             reward = -20 * pen_weight * pen_new #+ go_right_weight * go_right
     else:  # diff == 0
-        reward = 10 + go_right_weight * go_right
+        if go_right < 0:
+            reward = -2  #5 + go_right_weight * go_right
+        else:
+            reward = 20  #+ go_right_weight * go_right
         #print('IF #3')
+
+    if reward > 25:
+        reward = 25
+    elif reward < -25:
+        reward = -25
+
+    # if 0 < reward < 10:
+    #     reward = 10
+    # elif 10 <= reward < 20:
+    #     reward = 15
+    # elif reward >= 20:
+    #     reward = 20
+    # elif reward <= -20:
+    #     reward = -20
+    # elif -20 < reward <= -10:
+    #     reward = -15
+    # else:
+    #     reward = -10
 
     # reward += 10 * (before - after)
 
@@ -79,12 +106,24 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
     # position1 = position0 + action
     # position1[position1 > 1.0] = 1.0
     # position1[position1 < 0] = 0
-    normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+
+    # if np.sqrt(np.sum(action ** 2)) == 0.:
+    #     normalized_action = action
+    # elif np.sqrt(np.sum(action ** 2)) > 0.1:
+    #     normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+    # else:
+    #     normalized_action = action
+
+    if np.sqrt(np.sum(action ** 2)) == 0.:
+        normalized_action = action
+    else:
+        normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+
     position1 = position0 + normalized_action
 
     # print('position0 is:', position0, np.shape(position0))
     # print('action is:', action, np.shape(action))
-    # print('norm_action is:', normalized_action, np.shape(normalized_action))
+    print('norm_action is:', normalized_action, np.shape(normalized_action))
     #norm_pos = position1 / np.sqrt(np.sum(position1 ** 2))
 
     #print('position1 is:', position1, np.shape(position1))
@@ -93,13 +132,16 @@ def take_step(action, x, y, radi, coord1, coord2, penetration_prev, pen_init, mo
     # self.iteration_n += 1
 
     # calculate return values
+
+    print('TAKE STEP X AND Y:', position1[0][0], np.shape(position1[0][0]), position1[0][1], np.shape(position1[0][1]))
+
     f2 = force(position1[0][0], position1[0][1], float(radi), coord1, coord2)
     print('values of f in take step are:', f2[0], np.shape(f2[0]), f2[1], np.shape(f2[1]), f2[2], np.shape(f2[2]))
     penetration_new = f2[0]
     observation = f2[2]
     #print('Observation in take step is:', observation, np.shape(observation))
 
-    if penetration_new > 0.3:
+    if penetration_new > 0.15:
         done = True
         problem += 1
         # norm_pos = init_pos
@@ -139,7 +181,19 @@ def take_step_test(action, x, y, r, coord1, coord2, penetration_prev, motion_dir
 
     position0 = [[x[0], y[0]]]
 
-    normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+    # if np.sqrt(np.sum(action ** 2)) == 0.:
+    #     normalized_action = action
+    # elif np.sqrt(np.sum(action ** 2)) > 0.1:
+    #     normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+    # else:
+    #     normalized_action = action
+
+    if np.sqrt(np.sum(action ** 2)) == 0.:
+        normalized_action = action
+    else:
+        normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
+
+    #normalized_action = action / 10 / np.sqrt(np.sum(action ** 2))
     position1 = position0 + normalized_action
 
     # action[action > 1.0] = 1.0

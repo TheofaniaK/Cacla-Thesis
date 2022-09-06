@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 
 class Cacla:
-    def __init__(self, input_d, output_d, a, b, g, lr_dec, exploration_dec, exploration_fac):
+    def __init__(self, input_d, output_d, a, b, g, lr_dec, exploration_dec, exploration_fac, eps, epsilon_dec):
         """
         initializes CACLA reinforcement learning algorithm.
         #self.env = env
@@ -16,6 +16,8 @@ class Cacla:
         self.exploration_factor = exploration_fac
         self.lr_decay = lr_dec
         self.exploration_decay = exploration_dec
+        self.epsilon = eps
+        self.epsilon_decay = epsilon_dec
 
         self.alpha = a
         self.beta = b
@@ -46,6 +48,15 @@ class Cacla:
             exploration_dec = self.exploration_decay
         self.exploration_factor *= exploration_dec
 
+    def update_epsilon(self, epsilon_dec=None):
+        """
+        updates the exploration factor.
+        :param epsilon_dec: epsilon multiplier. if None, default value is used.
+        """
+        if epsilon_dec is None:
+            epsilon_dec = self.epsilon_decay
+        self.epsilon *= epsilon_dec
+
     @staticmethod
     def sample(action, explore):
         """
@@ -53,7 +64,19 @@ class Cacla:
         :param explore: exploration factor
         :return: explored action, normally distributed around default action.
         """
-        a = [i + np.random.normal(0, 1) * explore for i in action]
+        # a = [i + np.random.normal(0, 1) * explore for i in action]
+        a = [i + np.random.normal(0, 0.1) for i in action]
+        return a
+
+    @staticmethod
+    def sample_gr(action, epsilon):
+        p = np.random.random()
+        if p < epsilon:
+            ax = np.random.normal(0, 1)
+            ay = np.random.normal(0, 1)
+            a = action + [ax, ay]
+        else:
+            a = action
         return a
 
     @staticmethod
@@ -62,7 +85,7 @@ class Cacla:
         Creates actor. Uses 1 hidden layers with number of neurons 5 * input_dim (40).
         initializes weights to some small value.
         """
-        l1_size = 15 * input_d
+        l1_size = 100  #15 * input_d
 
         model = Sequential()
         model.add(Dense(l1_size, input_dim=input_d, activation="relu",
@@ -79,7 +102,7 @@ class Cacla:
         """
         See self._create_actor.
         """
-        l1_size = 15 * input_d
+        l1_size = 100  #15 * input_d
 
         model = Sequential()
         model.add(Dense(l1_size, input_dim=input_d, activation="relu",

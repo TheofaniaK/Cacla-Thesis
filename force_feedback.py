@@ -4,6 +4,7 @@ import shapely.geometry as geom
 from Near_point import NearestPoint
 
 def force(cx, cy, radi, coord1, coord2):
+    # print("FORCE X AND Y:", cx, cy, np.shape(cx), np.shape(cy))
     ########## initialize variables ###########
     """force_feed = 0
     direction = np.zeros((1, 2))
